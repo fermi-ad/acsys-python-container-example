@@ -1,0 +1,11 @@
+[project]
+name = "data-acquistion-example"
+version = "0.1.0"
+dependencies = [
+  "acsys @ https://www-bd.fnal.gov/pip3/acsys/acsys-0.12.6.tar.gz",
+  "acsys[settings] @ https://www-bd.fnal.gov/pip3/acsys/acsys-0.12.6.tar.gz",
+]
+
+[project.scripts]
+# from demo import main; main()
+demo = "demo:main"
