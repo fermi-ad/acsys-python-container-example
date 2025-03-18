@@ -10,6 +10,7 @@ WORKDIR /install
 RUN apk add --no-cache gcc musl-dev krb5-dev
 
 COPY pyproject.toml pyproject.toml
+RUN pip install --no-cache-dir --target=/install .
 
 
 FROM base
