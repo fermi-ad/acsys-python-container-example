@@ -24,4 +24,4 @@ USER pyuser:pygroup
 
 ENV PYTHONPATH="/usr/local"
 ENTRYPOINT ["python3"]
-CMD ["/app/main.py"]
+CMD ["main.py"]
