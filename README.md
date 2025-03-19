@@ -11,3 +11,21 @@ This project also includes a VSCode `.devcontainer`` that allows acsys-python de
 ## Docker Deployment
 
 The `.devcontainer` is not meant for production, so we build a `Dockerfile` as well. This file is somewhat optimized for deployment without development tools installed.
+
+## Build & Run
+
+- To build: 
+```bash
+    cd root-of-this-repo/
+    docker build -t <image-name> .
+```
+
+- To run 
+```bash
+    docker run --rm <image-name>
+```
+- To run your script directly without rebuilding the image:
+
+```bash
+    docker run --rm -v .:/app <image-name> <your-script>
+```
