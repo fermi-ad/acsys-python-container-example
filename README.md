@@ -29,3 +29,17 @@ The `.devcontainer` is not meant for production, so we build a `Dockerfile` as w
 ```bash
     docker run --rm -v .:/app <image-name> <your-script>
 ```
+
+## Demo Script Usage
+
+Run in console mode (default):
+
+```bash
+python demo/main.py
+```
+
+Run with a simple PyQt window:
+
+```bash
+python demo/main.py --ui
+```
