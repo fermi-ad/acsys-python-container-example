@@ -48,7 +48,6 @@ def main():
     parsed = parse_flexible_mapping(output)
 
     if args.ui == "pyqt":
-        print("[main] launching PyQt UI")
         show_pyqt_output(parsed)
     elif args.ui == "tkinter":
         show_tk_output(parsed)
