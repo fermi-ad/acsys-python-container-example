@@ -12,7 +12,20 @@ RUN dnf install -y \
  && dnf install -y xpra \
  && dnf clean all
 
-RUN dnf install -y krb5-libs shadow-utils python3.12 python3.12-devel && dnf clean all
+RUN dnf install -y krb5-libs shadow-utils python3.12 python3.12-devel python3.12-tkinter
+RUN dnf install -y \
+      libxcb \
+      libxkbcommon \
+      libxkbcommon-x11 \
+      xcb-util \
+      xcb-util-image \
+      xcb-util-keysyms \
+      xcb-util-renderutil \
+      xcb-util-wm \
+      xcb-util-cursor
+RUN dnf install -y dbus && dnf clean all
+RUN rm -f /etc/machine-id && dbus-uuidgen --ensure=/etc/machine-id
+
 RUN groupadd -g 1000 pygroup && useradd -m -u 1000 -g pygroup pyuser
 
 FROM base AS builder

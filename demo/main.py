@@ -7,7 +7,7 @@ import sys
 import acsys
 import acsys.dpm
 
-from demo.reading_parser import parse_flexible_mapping
+from reading_parser import parse_flexible_mapping
 from pyqt_ui import show_pyqt_output
 from tkinter_ui import show_tk_output
 
@@ -48,6 +48,7 @@ def main():
     parsed = parse_flexible_mapping(output)
 
     if args.ui == "pyqt":
+        print("[main] launching PyQt UI")
         show_pyqt_output(parsed)
     elif args.ui == "tkinter":
         show_tk_output(parsed)
