@@ -49,3 +49,25 @@ Run with a simple Tkinter window:
 ```bash
 python demo/main.py --ui tkinter
 ```
+
+## Run UIs from Docker Container (Xpra)
+
+Use the Makefile targets that start `xpra` inside the container and expose the HTML client at `http://localhost:14500`.
+
+Run PyQt UI in Docker:
+
+```bash
+make run-pyqt
+```
+
+Run Tkinter UI in Docker:
+
+```bash
+make run-tkinter
+```
+
+Then open:
+
+```text
+http://localhost:14500
+```
