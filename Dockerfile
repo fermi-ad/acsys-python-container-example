@@ -1,17 +1,18 @@
-FROM python:3.12-alpine AS base
+FROM registry.access.redhat.com/ubi9/python-312 AS base
 
-RUN addgroup -g 1000 -S pygroup && adduser -u 1000 -S -G pygroup pyuser
+USER root
 
-RUN apk add --no-cache krb5
+RUN dnf install -y krb5-libs shadow-utils && dnf clean all
+RUN groupadd -g 1000 pygroup && useradd -m -u 1000 -g pygroup pyuser
 
 FROM base AS builder
 WORKDIR /install
 
-RUN apk add --no-cache gcc musl-dev krb5-dev curl
+RUN dnf install -y gcc gcc-c++ make krb5-devel && dnf clean all
 
 COPY pyproject.toml uv.lock ./
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-RUN /root/.local/bin/uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev
 
 FROM base
 COPY --from=builder /install /usr/local
