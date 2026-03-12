@@ -1,11 +1,12 @@
 IMAGE_NAME ?= acsys-python-example
 SCRIPT ?= demo/main.py
 
-.PHONY: help build run run-script shell clean demo demo-ui
+.PHONY: help build build-no-cache run run-script shell clean demo demo-ui
 
 help:
 	@echo "Available targets:"
 	@echo "  make build                 Build Docker image ($(IMAGE_NAME))"
+	@echo "  make build-no-cache        Build Docker image ($(IMAGE_NAME)) without cache"
 	@echo "  make run                   Run container default command"
 	@echo "  make run-script SCRIPT=... Run a specific script in container with repo mounted"
 	@echo "  make shell                 Open an interactive shell in container"
@@ -15,6 +16,9 @@ help:
 
 build:
 	docker build -t $(IMAGE_NAME) .
+
+build-no-cache:
+	docker build --no-cache -t $(IMAGE_NAME) .
 
 run:
 	docker run --rm $(IMAGE_NAME)
