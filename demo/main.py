@@ -7,7 +7,9 @@ import sys
 import acsys
 import acsys.dpm
 
+from demo.reading_parser import parse_flexible_mapping
 from pyqt_ui import show_pyqt_output
+from tkinter_ui import show_tk_output
 
 _log = logging.getLogger("acsys")
 _log.setLevel("DEBUG")
@@ -27,6 +29,7 @@ async def my_app(con):
         # Process incoming data
         async for evt_res in dpm:
             if evt_res.isReading:
+                print(evt_res)
                 return str(evt_res)
 
     return "No reading received."
@@ -36,17 +39,18 @@ def main():
     parser = argparse.ArgumentParser(description="Fetch and display one ACSys reading.")
     parser.add_argument(
         "--ui",
-        action="store_true",
-        help="Display output in a simple PyQt window.",
+        choices=["pyqt", "tkinter"],
+        help="Display output in a desktop UI (pyqt or tkinter).",
     )
     args = parser.parse_args()
 
     output = acsys.run_client(my_app)
+    parsed = parse_flexible_mapping(output)
 
-    if args.ui:
-        show_pyqt_output(output)
-    else:
-        print(output)
+    if args.ui == "pyqt":
+        show_pyqt_output(parsed)
+    elif args.ui == "tkinter":
+        show_tk_output(parsed)
 
 
 if __name__ == "__main__":

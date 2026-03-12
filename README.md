@@ -41,5 +41,11 @@ python demo/main.py
 Run with a simple PyQt window:
 
 ```bash
-python demo/main.py --ui
+python demo/main.py --ui pyqt
+```
+
+Run with a simple Tkinter window:
+
+```bash
+python demo/main.py --ui tkinter
 ```
