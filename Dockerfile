@@ -27,6 +27,10 @@ RUN dnf install -y dbus && dnf clean all
 RUN rm -f /etc/machine-id && dbus-uuidgen --ensure=/etc/machine-id
 
 RUN groupadd -g 1000 pygroup && useradd -m -u 1000 -g pygroup pyuser
+RUN mkdir -p /run/user/1000 /tmp/runtime-pyuser /tmp/.X11-unix /run/xpra \
+ && chown -R pyuser:pygroup /run/user/1000 /tmp/runtime-pyuser /run/xpra \
+ && chmod 700 /run/user/1000 /tmp/runtime-pyuser /run/xpra \
+ && chmod 1777 /tmp/.X11-unix
 
 FROM base AS builder
 WORKDIR /install
@@ -46,5 +50,6 @@ WORKDIR /app
 USER pyuser:pygroup
 
 ENV PATH="/usr/local/.venv/bin:${PATH}"
+ENV XDG_RUNTIME_DIR=/tmp/runtime-pyuser
 ENTRYPOINT ["python"]
 CMD ["main.py"]
