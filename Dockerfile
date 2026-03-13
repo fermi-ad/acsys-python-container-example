@@ -12,7 +12,7 @@ RUN dnf install -y \
  && dnf install -y xpra \
  && dnf clean all
 
-RUN dnf install -y krb5-libs shadow-utils python3.12 python3.12-devel python3.12-tkinter git
+RUN dnf install -y krb5-libs shadow-utils python3.12 python3.12-devel python3.12-tkinter git nginx
 RUN dnf install -y \
       libxcb \
       libxkbcommon \
@@ -45,11 +45,14 @@ RUN uv sync --frozen --no-dev
 FROM base
 COPY --from=builder /install /usr/local
 COPY demo /app
+COPY docker/nginx.conf /etc/nginx/nginx.conf
+COPY docker/start.sh /usr/local/bin/start.sh
+RUN chmod +x /usr/local/bin/start.sh
 WORKDIR /app
 
 USER pyuser:pygroup
 
 ENV PATH="/usr/local/.venv/bin:${PATH}"
 ENV XDG_RUNTIME_DIR=/tmp/runtime-pyuser
-ENTRYPOINT ["python"]
-CMD ["main.py"]
+EXPOSE 80
+ENTRYPOINT ["/usr/local/bin/start.sh"]

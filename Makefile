@@ -2,30 +2,38 @@ IMAGE_NAME ?= acsys-python-example
 SCRIPT ?= demo/main.py
 
 XPRA_PORT ?= 14500
-XPRA_BASE_FLAGS := --bind-tcp=0.0.0.0:$(XPRA_PORT) --daemon=no --exit-with-children
-XPRA_FEATURE_FLAGS := --speaker=off --webcam=no --printing=no --notifications=no --opengl=no
+HTTP_PORT ?= 80
+CONTAINER_NAME ?= acsys-xpra
+UI ?= pyqt
 
 RUN_ARGS :=
 ifneq ($(strip $(ui)),)
 	RUN_ARGS := --ui $(ui)
 endif
 
-XPRA_RUN = docker run --rm -p $(XPRA_PORT):$(XPRA_PORT) -v .:/app --entrypoint xpra $(IMAGE_NAME) \
-	start-desktop :100 \
-	$(XPRA_BASE_FLAGS) --html=$(HTML) $(XPRA_FEATURE_FLAGS) \
-	--start-child="python /app/demo/main.py $(RUN_ARGS)"
-
 CLI_RUN = docker run --rm -v .:/app $(IMAGE_NAME) /app/demo/main.py
 
-.PHONY: help build build-no-cache run shell clean
+DEPLOY_RUN = docker run -d --rm \
+	--name $(CONTAINER_NAME) \
+	--restart unless-stopped \
+	-p $(HTTP_PORT):80 \
+	$(if $(APP_CMD),-e APP_CMD="$(APP_CMD)") \
+	$(if $(XPRA_BIND_HOST),-e XPRA_BIND_HOST="$(XPRA_BIND_HOST)") \
+	$(if $(XPRA_BIND_PORT),-e XPRA_BIND_PORT="$(XPRA_BIND_PORT)") \
+	$(if $(XPRA_DISPLAY),-e XPRA_DISPLAY="$(XPRA_DISPLAY)") \
+	$(IMAGE_NAME)
+
+.PHONY: help build build-no-cache run deploy stop shell clean
 
 help:
 	@echo "Available targets:"
-	@echo "  make build                       Build Docker image ($(IMAGE_NAME))"
-	@echo "  make build-no-cache              Build Docker image ($(IMAGE_NAME)) without cache"
-	@echo "  make run [ui=...] [html=on|off]  Run demo in Docker (default no UI; else ui=pyqt|tkinter)"
-	@echo "  make shell                       Open an interactive shell in container"
-	@echo "  make clean                       Remove Docker image ($(IMAGE_NAME))"
+	@echo "  make build                                  Build Docker image ($(IMAGE_NAME))"
+	@echo "  make build-no-cache                         Build Docker image ($(IMAGE_NAME)) without cache"
+	@echo "  make run [ui=pyqt|tkinter]                  Run demo directly in container for local testing"
+	@echo "  make deploy [ui=pyqt|tkinter] [HTTP_PORT=80] Start server deployment (Nginx -> Xpra HTML)"
+	@echo "  make stop [CONTAINER_NAME=acsys-xpra]       Stop deployed container"
+	@echo "  make shell                                  Open an interactive shell in container"
+	@echo "  make clean                                  Remove Docker image ($(IMAGE_NAME))"
 
 build:
 	docker build -t $(IMAGE_NAME) .
@@ -35,25 +43,28 @@ build-no-cache:
 
 run:
 	@if [ -n "$(ui)" ] && [ "$(ui)" != "pyqt" ] && [ "$(ui)" != "tkinter" ]; then \
-		echo "Usage: make run [ui=pyqt|tkinter] [html=on|off]"; \
+		echo "Usage: make run [ui=pyqt|tkinter]"; \
 		exit 1; \
 	fi
-	@if [ -z "$(ui)" ] && [ -n "$(html)" ]; then \
-		echo "Usage: html requires ui (make run ui=pyqt html=on|off)"; \
-		exit 1; \
-	fi
-	@if [ -n "$(html)" ] && [ "$(html)" != "on" ] && [ "$(html)" != "off" ]; then \
-		echo "Usage: make run [ui=pyqt|tkinter] [html=on|off]"; \
-		exit 1; \
-	fi
-	$(MAKE) _run HTML=$(if $(html),$(html),off) ui=$(ui)
-
-_run:
 	@if [ -n "$(ui)" ]; then \
-		$(XPRA_RUN); \
+		docker run --rm -v .:/app $(IMAGE_NAME) /app/demo/main.py --ui $(ui); \
 	else \
 		$(CLI_RUN); \
 	fi
+
+deploy:
+	@if [ -n "$(ui)" ] && [ "$(ui)" != "pyqt" ] && [ "$(ui)" != "tkinter" ]; then \
+		echo "Usage: make deploy [ui=pyqt|tkinter] [HTTP_PORT=80]"; \
+		exit 1; \
+	fi
+	$(MAKE) _deploy APP_CMD="python /app/main.py --ui $(if $(ui),$(ui),$(UI))"
+
+_deploy:
+	$(DEPLOY_RUN)
+	@echo "Deployment started: http://localhost:$(HTTP_PORT)/"
+
+stop:
+	-docker stop $(CONTAINER_NAME)
 
 shell:
 	docker run --rm -it -v .:/app --entrypoint /bin/sh $(IMAGE_NAME)
