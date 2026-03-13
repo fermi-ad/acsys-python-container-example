@@ -1,19 +1,94 @@
 import html
 import tkinter as tk
 
+
 class OutputWindow:
     def __init__(self, data: dict | None):
         self.root = tk.Tk()
         self.root.title("ACSys Output")
-        self.root.geometry("560x240")
+        self.root.geometry("560x320")
 
-        text_widget = tk.Text(self.root, wrap="word", padx=16, pady=16)
-        text_widget.insert(
+        container = tk.Frame(self.root, padx=16, pady=16)
+        container.pack(fill="both", expand=True)
+
+        self.canvas = tk.Canvas(container, width=110, height=110, highlightthickness=0)
+        self.canvas.pack(anchor="w")
+
+        sctime_seconds = self._extract_sctime_seconds(data)
+        self._draw_sctime_pie(self.canvas, sctime_seconds)
+
+        sctime_ms_text = (
+            f"SCTIME: {round(sctime_seconds * 1000)} ms" if sctime_seconds is not None else "SCTIME: unavailable"
+        )
+        self.ms_label = tk.Label(container, text=sctime_ms_text)
+        self.ms_label.pack(anchor="w", pady=(6, 12))
+
+        self.text_widget = tk.Text(container, wrap="word", padx=8, pady=8, height=8)
+        self.text_widget.insert(
             "1.0",
             self._dict_to_indented_text(data) if data is not None else "No reading received.",
         )
-        text_widget.configure(state="disabled")
-        text_widget.pack(fill="both", expand=True)
+        self.text_widget.configure(state="disabled")
+        self.text_widget.pack(fill="both", expand=True)
+
+    def update_data(self, data: dict | None) -> None:
+        sctime_seconds = self._extract_sctime_seconds(data)
+
+        self.canvas.delete("all")
+        self._draw_sctime_pie(self.canvas, sctime_seconds)
+
+        sctime_ms_text = (
+            f"SCTIME: {round(sctime_seconds * 1000)} ms" if sctime_seconds is not None else "SCTIME: unavailable"
+        )
+        self.ms_label.configure(text=sctime_ms_text)
+
+        self.text_widget.configure(state="normal")
+        self.text_widget.delete("1.0", tk.END)
+        self.text_widget.insert(
+            "1.0",
+            self._dict_to_indented_text(data) if data is not None else "No reading received.",
+        )
+        self.text_widget.configure(state="disabled")
+
+    def _extract_sctime_seconds(self, data: dict | None) -> float | None:
+        if not isinstance(data, dict):
+            return None
+
+        raw = data.get("data")
+        if isinstance(raw, (int, float)):
+            return float(raw)
+
+        if isinstance(raw, str):
+            try:
+                return float(raw)
+            except ValueError:
+                return None
+
+        return None
+
+    def _draw_sctime_pie(self, canvas: tk.Canvas, sctime_seconds: float | None) -> None:
+        x0, y0, x1, y1 = 5, 5, 105, 105
+        canvas.create_oval(x0, y0, x1, y1, outline="#444", width=2, fill="#f0f0f0")
+
+        if sctime_seconds is None:
+            return
+
+        clamped = max(0.0, min(60.0, sctime_seconds))
+        extent = 360.0 * (clamped / 60.0)
+        if extent <= 0:
+            return
+
+        canvas.create_arc(
+            x0,
+            y0,
+            x1,
+            y1,
+            start=90,
+            extent=-extent,
+            fill="#4a90e2",
+            outline="#4a90e2",
+            style=tk.PIESLICE,
+        )
 
     def _dict_to_indented_text(self, data: dict) -> str:
         def render(value, indent: int = 0) -> str:
