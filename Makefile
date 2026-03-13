@@ -13,7 +13,7 @@ endif
 
 CLI_RUN = docker run --rm -v .:/app $(IMAGE_NAME) /app/demo/main.py
 
-DEPLOY_RUN = docker run -d --rm \
+DEPLOY_RUN = docker run -d \
 	--name $(CONTAINER_NAME) \
 	--restart unless-stopped \
 	-p $(HTTP_PORT):80 \
@@ -57,7 +57,7 @@ deploy:
 		echo "Usage: make deploy [ui=pyqt|tkinter] [HTTP_PORT=80]"; \
 		exit 1; \
 	fi
-	$(MAKE) _deploy APP_CMD="python /app/main.py --ui $(if $(ui),$(ui),$(UI))"
+	$(MAKE) _deploy APP_CMD="python /app/demo/main.py --ui $(if $(ui),$(ui),$(UI))"
 
 _deploy:
 	$(DEPLOY_RUN)

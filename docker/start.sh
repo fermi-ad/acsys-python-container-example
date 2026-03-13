@@ -4,7 +4,7 @@ set -Eeuo pipefail
 XPRA_DISPLAY="${XPRA_DISPLAY:-:100}"
 XPRA_BIND_HOST="${XPRA_BIND_HOST:-127.0.0.1}"
 XPRA_BIND_PORT="${XPRA_BIND_PORT:-14500}"
-APP_CMD="${APP_CMD:-python /app/main.py --ui pyqt}"
+APP_CMD="${APP_CMD:-python /app/demo/main.py --ui pyqt}"
 XPRA_LOG_FILE="${XPRA_LOG_FILE:-/tmp/xpra.log}"
 
 cleanup() {
@@ -16,7 +16,11 @@ trap cleanup SIGINT SIGTERM EXIT
 
 mkdir -p /run/user/1000 /tmp/runtime-pyuser /run/xpra /tmp/.X11-unix
 chmod 700 /run/user/1000 /tmp/runtime-pyuser /run/xpra || true
-chmod 1777 /tmp/.X11-unix || true
+if ! chmod 1777 /tmp/.X11-unix 2>/dev/null; then
+  echo "[start.sh] warning: could not chmod /tmp/.X11-unix (continuing)" >&2
+fi
+
+mkdir -p /tmp/nginx/client_body /tmp/nginx/proxy /tmp/nginx/fastcgi /tmp/nginx/uwsgi /tmp/nginx/scgi
 
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp/runtime-pyuser}"
 
@@ -42,9 +46,17 @@ for i in $(seq 1 30); do
     echo "[start.sh] Xpra is ready"
     break
   fi
+
+  if ! kill -0 "$!" 2>/dev/null; then
+    echo "[start.sh] Xpra exited early. Last log lines:" >&2
+    tail -n 100 "${XPRA_LOG_FILE}" >&2 || true
+    exit 1
+  fi
+
   sleep 1
   if [ "$i" -eq 30 ]; then
-    echo "[start.sh] Xpra failed to become ready" >&2
+    echo "[start.sh] Xpra failed to become ready. Last log lines:" >&2
+    tail -n 100 "${XPRA_LOG_FILE}" >&2 || true
     exit 1
   fi
 done
