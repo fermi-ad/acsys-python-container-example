@@ -12,7 +12,7 @@ RUN dnf install -y \
  && dnf install -y xpra \
  && dnf clean all
 
-RUN dnf install -y krb5-libs shadow-utils python3.12 python3.12-devel python3.12-tkinter
+RUN dnf install -y krb5-libs shadow-utils python3.12 python3.12-devel python3.12-tkinter git
 RUN dnf install -y \
       libxcb \
       libxkbcommon \

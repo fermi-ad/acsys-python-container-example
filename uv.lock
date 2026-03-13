@@ -4,28 +4,16 @@ requires-python = ">=3.12"
 
 [[package]]
 name = "acsys"
-version = "0.12.8"
-source = { url = "https://www-bd.fnal.gov/pip3/acsys/acsys-0.12.8.tar.gz" }
+version = "0.12.9.post0+git.c017b1e3.dirty"
+source = { git = "https://github.com/fermi-ad/acsys-python?rev=v0.12.9#c017b1e35937f28bc63bdad7dbcb4f089e6a624b" }
 dependencies = [
     { name = "nest-asyncio" },
 ]
-sdist = { hash = "sha256:5e043d5f4cdfa0178d16f08e28233c6d7c040d8cbedbe72cc8e9eab76e4ee839" }
 
 [package.optional-dependencies]
 settings = [
     { name = "gssapi" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "gssapi", marker = "extra == 'all'" },
-    { name = "gssapi", marker = "extra == 'settings'" },
-    { name = "importlib-metadata", marker = "python_full_version < '3.8'" },
-    { name = "importlib-metadata", marker = "python_full_version < '3.8' and extra == 'all'" },
-    { name = "nest-asyncio" },
-    { name = "nest-asyncio", marker = "extra == 'all'" },
-]
-provides-extras = ["settings", "all"]
 
 [[package]]
 name = "data-acquisition-example"
@@ -38,8 +26,8 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "acsys", url = "https://www-bd.fnal.gov/pip3/acsys/acsys-0.12.8.tar.gz" },
-    { name = "acsys", extras = ["settings"], url = "https://www-bd.fnal.gov/pip3/acsys/acsys-0.12.8.tar.gz" },
+    { name = "acsys", git = "https://github.com/fermi-ad/acsys-python?rev=v0.12.9" },
+    { name = "acsys", extras = ["settings"], git = "https://github.com/fermi-ad/acsys-python?rev=v0.12.9" },
     { name = "pyqt6", specifier = ">=6.10.2" },
 ]
 
