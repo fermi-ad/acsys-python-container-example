@@ -33,7 +33,7 @@ xpra start "${XPRA_DISPLAY}" \
   --html=on \
   --daemon=no \
   --exit-with-children=yes \
-  --start-child="/bin/bash -lc '${APP_CMD} >>\"${APP_LOG_FILE}\" 2>&1'" \
+  --start-child="/bin/bash -lc '${APP_CMD}'" \
   --pulseaudio=no \
   --notifications=no \
   --bell=no \
@@ -65,7 +65,7 @@ done
 
 echo "[start.sh] starting nginx"
 
-# Stream app output to container stdout so `docker logs` / `make run` shows activity.
-tail -n +1 -F "${APP_LOG_FILE}" &
+# Stream both logs to container stdout so `make deploy` always shows app/xpra output.
+tail -n +1 -F "${XPRA_LOG_FILE}" "${APP_LOG_FILE}" &
 
 exec nginx -e /dev/stderr -g 'daemon off;'
