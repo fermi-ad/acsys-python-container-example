@@ -87,3 +87,42 @@ Then open:
 ```text
 http://localhost:14500
 ```
+
+## Server Deployment: Single Container with Nginx Reverse Proxy
+
+This repository can be deployed as a single container that:
+- runs Xpra in HTML mode bound on internal `127.0.0.1:14500`
+- starts the PyQt UI app through Xpra
+- exposes Nginx on external port `80` at path `/`, proxying traffic to Xpra
+
+Build image:
+
+```bash
+docker build -t acsys-xpra-nginx .
+```
+
+Run on a server:
+
+```bash
+docker run -d \
+  --name acsys-xpra \
+  --restart unless-stopped \
+  -p 80:80 \
+  acsys-xpra-nginx
+```
+
+Open in browser:
+
+```text
+http://<server-ip>/
+```
+
+Optional environment overrides:
+- `APP_CMD` (default: `python /app/main.py --ui pyqt`)
+- `XPRA_BIND_HOST` (default: `127.0.0.1`)
+- `XPRA_BIND_PORT` (default: `14500`)
+- `XPRA_DISPLAY` (default: `:100`)
+
+Security note:
+- This setup is suitable for internal or trusted networks.
+- For internet-facing use, add TLS termination and Xpra authentication before public exposure.
