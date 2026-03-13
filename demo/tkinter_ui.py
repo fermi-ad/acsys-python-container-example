@@ -11,14 +11,28 @@ class OutputWindow:
         container = tk.Frame(self.root, padx=16, pady=16)
         container.pack(fill="both", expand=True)
 
-        self.canvas = tk.Canvas(container, width=110, height=110, highlightthickness=0)
-        self.canvas.pack(anchor="w")
+        pie_row = tk.Frame(container)
+        pie_row.pack(anchor="w")
+
+        self.seconds_canvas = tk.Canvas(
+            pie_row, width=110, height=110, highlightthickness=0
+        )
+        self.seconds_canvas.pack(side="left")
+
+        self.ms_canvas = tk.Canvas(pie_row, width=110, height=110, highlightthickness=0)
+        self.ms_canvas.pack(side="left", padx=(12, 0))
 
         sctime_seconds = self._extract_sctime_seconds(data)
-        self._draw_sctime_pie(self.canvas, sctime_seconds)
+        sctime_ms = (
+            (sctime_seconds % 1.0) * 1000 if sctime_seconds is not None else None
+        )
+        self._draw_pie(self.seconds_canvas, sctime_seconds, 60.0, "#4a90e2")
+        self._draw_pie(self.ms_canvas, sctime_ms, 1000.0, "#50c878")
 
         sctime_ms_text = (
-            f"SCTIME: {round(sctime_seconds * 1000)} ms" if sctime_seconds is not None else "SCTIME: unavailable"
+            f"SCTIME: {round(sctime_seconds, 1)} s"
+            if sctime_seconds is not None
+            else "SCTIME: unavailable"
         )
         self.ms_label = tk.Label(container, text=sctime_ms_text)
         self.ms_label.pack(anchor="w", pady=(6, 12))
@@ -26,7 +40,9 @@ class OutputWindow:
         self.text_widget = tk.Text(container, wrap="word", padx=8, pady=8, height=8)
         self.text_widget.insert(
             "1.0",
-            self._dict_to_indented_text(data) if data is not None else "No reading received.",
+            self._dict_to_indented_text(data)
+            if data is not None
+            else "No reading received.",
         )
         self.text_widget.configure(state="disabled")
         self.text_widget.pack(fill="both", expand=True)
@@ -34,11 +50,19 @@ class OutputWindow:
     def update_data(self, data: dict | None) -> None:
         sctime_seconds = self._extract_sctime_seconds(data)
 
-        self.canvas.delete("all")
-        self._draw_sctime_pie(self.canvas, sctime_seconds)
+        sctime_ms = (
+            (sctime_seconds % 1.0) * 1000 if sctime_seconds is not None else None
+        )
+
+        self.seconds_canvas.delete("all")
+        self.ms_canvas.delete("all")
+        self._draw_pie(self.seconds_canvas, sctime_seconds, 60.0, "#4a90e2")
+        self._draw_pie(self.ms_canvas, sctime_ms, 1000.0, "#50c878")
 
         sctime_ms_text = (
-            f"SCTIME: {round(sctime_seconds * 1000)} ms" if sctime_seconds is not None else "SCTIME: unavailable"
+            f"SCTIME: {round(sctime_seconds, 1)} s"
+            if sctime_seconds is not None
+            else "SCTIME: unavailable"
         )
         self.ms_label.configure(text=sctime_ms_text)
 
@@ -46,7 +70,9 @@ class OutputWindow:
         self.text_widget.delete("1.0", tk.END)
         self.text_widget.insert(
             "1.0",
-            self._dict_to_indented_text(data) if data is not None else "No reading received.",
+            self._dict_to_indented_text(data)
+            if data is not None
+            else "No reading received.",
         )
         self.text_widget.configure(state="disabled")
 
@@ -66,15 +92,17 @@ class OutputWindow:
 
         return None
 
-    def _draw_sctime_pie(self, canvas: tk.Canvas, sctime_seconds: float | None) -> None:
+    def _draw_pie(
+        self, canvas: tk.Canvas, value: float | None, max_value: float, color: str
+    ) -> None:
         x0, y0, x1, y1 = 5, 5, 105, 105
         canvas.create_oval(x0, y0, x1, y1, outline="#444", width=2, fill="#f0f0f0")
 
-        if sctime_seconds is None:
+        if value is None or max_value <= 0:
             return
 
-        clamped = max(0.0, min(60.0, sctime_seconds))
-        extent = 360.0 * (clamped / 60.0)
+        clamped = max(0.0, min(max_value, value))
+        extent = 360.0 * (clamped / max_value)
         if extent <= 0:
             return
 
@@ -85,8 +113,8 @@ class OutputWindow:
             y1,
             start=90,
             extent=-extent,
-            fill="#4a90e2",
-            outline="#4a90e2",
+            fill=color,
+            outline=color,
             style=tk.PIESLICE,
         )
 

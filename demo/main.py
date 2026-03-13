@@ -20,6 +20,9 @@ _log.setLevel("DEBUG")
 handler = logging.StreamHandler(sys.stdout)
 _log.addHandler(handler)
 
+UI_REFRESH_FPS = 30
+UI_REFRESH_MS = int(1000 / UI_REFRESH_FPS)
+
 
 async def my_app(con):
     # Setup context
@@ -34,20 +37,20 @@ async def my_app(con):
         await dpm.start()
 
         # Process incoming data
+        sctime_count = 0
         got_outtmp = None
-        latest_sctime = None
+
         async for evt_res in dpm:
-            if evt_res.is_reading_for(0) and got_outtmp is None:
-                got_outtmp = str(evt_res)
+            # Print OUTTMP and the first 5 SCTIME readings
+            if got_outtmp and sctime_count >= 5:
+                return
+            if evt_res.is_reading_for(0) and not got_outtmp:
+                got_outtmp = True
                 print(evt_res)
             elif evt_res.is_reading_for(1):
-                latest_sctime = str(evt_res)
-                print(evt_res)
-
-            if got_outtmp is not None and latest_sctime is not None:
-                return latest_sctime
-
-        return latest_sctime or got_outtmp or "No reading received."
+                sctime_count += 1
+                if sctime_count <= 5:
+                    print(evt_res)
 
 
 async def stream_sctime(con, update_queue: queue.Queue, stop_event: threading.Event):
@@ -76,12 +79,9 @@ def main():
 
     if args.ui is None:
         try:
-            output = acsys.run_client(my_app)
+            acsys.run_client(my_app)
         except KeyboardInterrupt:
             return
-
-        parsed = parse_flexible_mapping(output)
-        print(parsed if parsed is not None else output)
         return
 
     updates: queue.Queue[str] = queue.Queue()
@@ -110,7 +110,7 @@ def main():
                 window.update_data(parse_flexible_mapping(latest_payload))
 
         timer.timeout.connect(pump_updates)
-        timer.start(66)
+        timer.start(UI_REFRESH_MS)
 
         def on_about_to_quit() -> None:
             stop_event.set()
@@ -130,14 +130,14 @@ def main():
             if latest_payload is not None:
                 window.update_data(parse_flexible_mapping(latest_payload))
             if not stop_event.is_set():
-                window.root.after(66, pump_updates)
+                window.root.after(UI_REFRESH_MS, pump_updates)
 
         def on_close() -> None:
             stop_event.set()
             window.root.destroy()
 
         window.root.protocol("WM_DELETE_WINDOW", on_close)
-        window.root.after(66, pump_updates)
+        window.root.after(UI_REFRESH_MS, pump_updates)
         window.root.mainloop()
         stop_event.set()
 
