@@ -6,6 +6,7 @@ XPRA_BIND_HOST="${XPRA_BIND_HOST:-127.0.0.1}"
 XPRA_BIND_PORT="${XPRA_BIND_PORT:-14500}"
 APP_CMD="${APP_CMD:-python /app/demo/main.py --ui pyqt}"
 XPRA_LOG_FILE="${XPRA_LOG_FILE:-/tmp/xpra.log}"
+APP_LOG_FILE="${APP_LOG_FILE:-/tmp/app.log}"
 
 cleanup() {
   echo "[start.sh] shutting down"
@@ -21,6 +22,7 @@ if ! chmod 1777 /tmp/.X11-unix 2>/dev/null; then
 fi
 
 mkdir -p /tmp/nginx/client_body /tmp/nginx/proxy /tmp/nginx/fastcgi /tmp/nginx/uwsgi /tmp/nginx/scgi
+touch "${APP_LOG_FILE}" "${XPRA_LOG_FILE}"
 
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp/runtime-pyuser}"
 
@@ -31,7 +33,7 @@ xpra start "${XPRA_DISPLAY}" \
   --html=on \
   --daemon=no \
   --exit-with-children=yes \
-  --start-child="${APP_CMD}" \
+  --start-child="/bin/bash -lc '${APP_CMD} >>\"${APP_LOG_FILE}\" 2>&1'" \
   --pulseaudio=no \
   --notifications=no \
   --bell=no \
@@ -62,4 +64,8 @@ for i in $(seq 1 30); do
 done
 
 echo "[start.sh] starting nginx"
-exec nginx -g 'daemon off;'
+
+# Stream app output to container stdout so `docker logs` / `make run` shows activity.
+tail -n +1 -F "${APP_LOG_FILE}" &
+
+exec nginx -e /dev/stderr -g 'daemon off;'
