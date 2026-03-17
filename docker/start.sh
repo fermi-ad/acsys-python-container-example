@@ -4,7 +4,7 @@ set -Eeuo pipefail
 XPRA_DISPLAY="${XPRA_DISPLAY:-:100}"
 XPRA_BIND_HOST="${XPRA_BIND_HOST:-127.0.0.1}"
 XPRA_BIND_PORT="${XPRA_BIND_PORT:-14500}"
-APP_CMD="${APP_CMD:-python /app/demo/main.py --ui pyqt}"
+APP_CMD="${APP_CMD:-python /app/main.py --ui pyqt}"
 XPRA_LOG_FILE="${XPRA_LOG_FILE:-/tmp/xpra.log}"
 APP_LOG_FILE="${APP_LOG_FILE:-/tmp/app.log}"
 
