@@ -5,6 +5,7 @@ import logging
 import queue
 import sys
 import threading
+import time
 
 import acsys
 import acsys.dpm
@@ -58,6 +59,10 @@ async def stream_sctime(con, update_queue: queue.Queue, stop_event: threading.Ev
         await dpm.add_entry(1, "G:SCTIME@P,15H")
         await dpm.start()
 
+        log_every_seconds = 5.0
+        next_log_at = time.monotonic() + log_every_seconds
+        msg_count = 0
+
         async for evt_res in dpm:
             if stop_event.is_set():
                 break
@@ -65,7 +70,12 @@ async def stream_sctime(con, update_queue: queue.Queue, stop_event: threading.Ev
             if evt_res.is_reading_for(1):
                 payload = str(evt_res)
                 update_queue.put(payload)
-                print(evt_res)
+                msg_count += 1
+
+                now = time.monotonic()
+                if now >= next_log_at:
+                    print(f"SCTIME stream active ({msg_count} updates received)")
+                    next_log_at = now + log_every_seconds
 
 
 def main():
