@@ -11,6 +11,9 @@ APP_LOG_FILE="${APP_LOG_FILE:-/tmp/app.log}"
 cleanup() {
   echo "[start.sh] shutting down"
   xpra stop "${XPRA_DISPLAY}" >/dev/null 2>&1 || true
+  if [ -n "${NGINX_PID:-}" ]; then
+    kill "${NGINX_PID}" >/dev/null 2>&1 || true
+  fi
 }
 
 trap cleanup SIGINT SIGTERM EXIT
@@ -63,9 +66,20 @@ for i in $(seq 1 30); do
   fi
 done
 
+XPRA_PID=$!
+
 echo "[start.sh] starting nginx"
+nginx -e /dev/stderr -g 'daemon off;' &
+NGINX_PID=$!
 
-# Stream both logs to container stdout so `make deploy` always shows app/xpra output.
+# Stream both logs to container stdout so `make run` always shows app/xpra output.
 tail -n +1 -F "${XPRA_LOG_FILE}" "${APP_LOG_FILE}" &
+TAIL_PID=$!
 
-exec nginx -e /dev/stderr -g 'daemon off;'
+wait "${XPRA_PID}"
+XPRA_EXIT_CODE=$?
+
+kill "${TAIL_PID}" >/dev/null 2>&1 || true
+kill "${NGINX_PID}" >/dev/null 2>&1 || true
+
+exit "${XPRA_EXIT_CODE}"
