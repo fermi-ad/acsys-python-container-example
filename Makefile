@@ -1,17 +1,10 @@
 IMAGE_NAME ?= acsys-python-example
-SCRIPT ?= demo/main.py
+SCRIPT ?= main.py
 
 XPRA_PORT ?= 14500
 HTTP_PORT ?= 80
 CONTAINER_NAME ?= acsys-xpra
 UI ?= pyqt
-
-RUN_ARGS :=
-ifneq ($(strip $(ui)),)
-	RUN_ARGS := --ui $(ui)
-endif
-
-CLI_RUN = docker run --rm -v .:/app $(IMAGE_NAME) /app/demo/main.py
 
 DEPLOY_RUN = docker run --rm \
 	--name $(CONTAINER_NAME) \
@@ -22,14 +15,13 @@ DEPLOY_RUN = docker run --rm \
 	$(if $(XPRA_DISPLAY),-e XPRA_DISPLAY="$(XPRA_DISPLAY)") \
 	$(IMAGE_NAME)
 
-.PHONY: help build build-no-cache run deploy stop shell clean
+.PHONY: help build build-no-cache run stop shell clean
 
 help:
 	@echo "Available targets:"
 	@echo "  make build                                  Build Docker image ($(IMAGE_NAME))"
 	@echo "  make build-no-cache                         Build Docker image ($(IMAGE_NAME)) without cache"
-	@echo "  make run [ui=pyqt|tkinter]                  Run demo directly in container for local testing"
-	@echo "  make deploy [ui=pyqt|tkinter] [HTTP_PORT=80] Start server deployment (Nginx -> Xpra HTML)"
+	@echo "  make run [UI=pyqt|tkinter] [HTTP_PORT=80]   Run deployment container (Nginx -> Xpra HTML)"
 	@echo "  make stop [CONTAINER_NAME=acsys-xpra]       Stop deployed container"
 	@echo "  make shell                                  Open an interactive shell in container"
 	@echo "  make clean                                  Remove Docker image ($(IMAGE_NAME))"
@@ -41,26 +33,15 @@ build-no-cache:
 	docker build --no-cache -t $(IMAGE_NAME) .
 
 run:
-	@if [ -n "$(ui)" ] && [ "$(ui)" != "pyqt" ] && [ "$(ui)" != "tkinter" ]; then \
-		echo "Usage: make run [ui=pyqt|tkinter]"; \
+	@if [ "$(UI)" != "pyqt" ] && [ "$(UI)" != "tkinter" ]; then \
+		echo "Usage: make run [UI=pyqt|tkinter] [HTTP_PORT=80]"; \
 		exit 1; \
 	fi
-	@if [ -n "$(ui)" ]; then \
-		docker run --rm -v .:/app $(IMAGE_NAME) /app/demo/main.py --ui $(ui); \
-	else \
-		$(CLI_RUN); \
-	fi
+	$(MAKE) _run APP_CMD="python /app/$(SCRIPT) --ui $(UI)"
 
-deploy:
-	@if [ -n "$(ui)" ] && [ "$(ui)" != "pyqt" ] && [ "$(ui)" != "tkinter" ]; then \
-		echo "Usage: make deploy [ui=pyqt|tkinter] [HTTP_PORT=80]"; \
-		exit 1; \
-	fi
-	$(MAKE) _deploy APP_CMD="python /app/main.py --ui $(if $(ui),$(ui),$(UI))"
-
-_deploy:
+_run:
 	$(DEPLOY_RUN)
-	@echo "Deployment started (attached): http://localhost:$(HTTP_PORT)/"
+	@echo "Run started (attached): http://localhost:$(HTTP_PORT)/"
 
 stop:
 	-docker stop $(CONTAINER_NAME)
