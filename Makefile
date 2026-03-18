@@ -2,13 +2,12 @@ IMAGE_NAME ?= acsys-python-example
 SCRIPT ?= main.py
 
 XPRA_PORT ?= 14500
-HTTP_PORT ?= 80
 CONTAINER_NAME ?= acsys-xpra
 UI ?= pyqt
 
 DEPLOY_RUN = docker run --rm \
 	--name $(CONTAINER_NAME) \
-	-p $(HTTP_PORT):80 \
+	-p $(XPRA_PORT):14500 \
 	$(if $(APP_CMD),-e APP_CMD="$(APP_CMD)") \
 	$(if $(XPRA_BIND_HOST),-e XPRA_BIND_HOST="$(XPRA_BIND_HOST)") \
 	$(if $(XPRA_BIND_PORT),-e XPRA_BIND_PORT="$(XPRA_BIND_PORT)") \
@@ -21,7 +20,7 @@ help:
 	@echo "Available targets:"
 	@echo "  make build                                  Build Docker image ($(IMAGE_NAME))"
 	@echo "  make build-no-cache                         Build Docker image ($(IMAGE_NAME)) without cache"
-	@echo "  make run [UI=pyqt|tkinter] [HTTP_PORT=80]   Run deployment container (Nginx -> Xpra HTML)"
+	@echo "  make run [UI=pyqt|tkinter] [XPRA_PORT=14500] Run deployment container (direct Xpra TCP)"
 	@echo "  make stop [CONTAINER_NAME=acsys-xpra]       Stop deployed container"
 	@echo "  make shell                                  Open an interactive shell in container"
 	@echo "  make clean                                  Remove Docker image ($(IMAGE_NAME))"
@@ -34,14 +33,14 @@ build-no-cache:
 
 run:
 	@if [ "$(UI)" != "pyqt" ] && [ "$(UI)" != "tkinter" ]; then \
-		echo "Usage: make run [UI=pyqt|tkinter] [HTTP_PORT=80]"; \
+		echo "Usage: make run [UI=pyqt|tkinter] [XPRA_PORT=14500]"; \
 		exit 1; \
 	fi
 	$(MAKE) _run APP_CMD="python /app/$(SCRIPT) --ui $(UI)"
 
 _run:
 	$(DEPLOY_RUN)
-	@echo "Run started (attached): http://localhost:$(HTTP_PORT)/"
+	@echo "Run started (attached): tcp:localhost:$(XPRA_PORT)"
 
 stop:
 	-docker stop $(CONTAINER_NAME)

@@ -53,20 +53,21 @@ python demo/main.py --ui tkinter
 ## Run Demo from Docker Container (Xpra)
 
 Use the Makefile [`run`](Makefile) target, with optional arguments:
-- `ui=pyqt|tkinter` to choose a UI toolkit.
-- `html=on|off` to enable/disable Xpra HTML5 mode (`off` by default).
+- `UI=pyqt|tkinter` to choose a UI toolkit.
+- `XPRA_PORT=<port>` to map a local port to container Xpra TCP port `14500`.
+- `XPRA_PASSWORD=<password>` to pass Xpra auth password into the container environment.
 
-Run with default settings (no UI, HTML off):
+Run with default settings:
 
 ```bash
 make run
 ```
 
-Run with a UI (native Xpra client mode, HTML off):
+Run with a specific UI:
 
 ```bash
-make run ui=pyqt
-make run ui=tkinter
+make run UI=pyqt
+make run UI=tkinter
 ```
 
 Then connect from your local Xpra client to:
@@ -75,30 +76,27 @@ Then connect from your local Xpra client to:
 tcp:localhost:14500
 ```
 
-Run with HTML5 mode enabled (browser):
+Or, if using a custom local port:
 
 ```bash
-make run ui=pyqt html=on
-make run ui=tkinter html=on
+make run UI=pyqt XPRA_PORT=16000 XPRA_PASSWORD='change-me-now'
 ```
-
-Then open:
 
 ```text
-http://localhost:14500
+tcp:localhost:16000
 ```
 
-## Server Deployment: Single Container with Nginx Reverse Proxy
+## Server Deployment: Single Container with Direct Xpra TCP
 
 This repository can be deployed as a single container that:
-- runs Xpra in HTML mode bound on internal `127.0.0.1:14500`
+- runs Xpra with TCP bound on `0.0.0.0:14500`
+- requires Xpra authentication for native client access
 - starts the PyQt UI app through Xpra
-- exposes Nginx on external port `80` at path `/`, proxying traffic to Xpra
 
 Build image:
 
 ```bash
-docker build -t acsys-xpra-nginx .
+docker build -t acsys-xpra .
 ```
 
 Run on a server:
@@ -107,22 +105,27 @@ Run on a server:
 docker run -d \
   --name acsys-xpra \
   --restart unless-stopped \
-  -p 80:80 \
-  acsys-xpra-nginx
+  -p 14500:14500 \
+  -e XPRA_PASSWORD='change-me-now' \
+  acsys-xpra
 ```
 
-Open in browser:
+Connect from native Xpra client:
 
 ```text
-http://<server-ip>/
+tcp:<server-ip>:14500
 ```
 
 Optional environment overrides:
 - `APP_CMD` (default: `python /app/main.py --ui pyqt`)
-- `XPRA_BIND_HOST` (default: `127.0.0.1`)
+- `XPRA_BIND_HOST` (default: `0.0.0.0`)
 - `XPRA_BIND_PORT` (default: `14500`)
 - `XPRA_DISPLAY` (default: `:100`)
+- `XPRA_HTML` (default: `on`; only needed if using Xpra HTML directly on port `14500`)
+- `XPRA_AUTH` (default: `password`)
+- `XPRA_PASSWORD` (recommended secret; writes to `XPRA_PASSWORD_FILE` at startup)
+- `XPRA_PASSWORD_FILE` (default: `/xpra/password.txt`; use with mounted secret files)
 
 Security note:
-- This setup is suitable for internal or trusted networks.
-- For internet-facing use, add TLS termination and Xpra authentication before public exposure.
+- Authentication is now required by default for native Xpra TCP access.
+- Use a strong password and do not expose port `14500` publicly without network controls and TLS in front of Xpra.
