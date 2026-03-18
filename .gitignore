@@ -164,3 +164,6 @@ cython_debug/
 
 # Kilo Code
 .kilocode/
+
+# Xpra
+xpra/password.txt

@@ -2,8 +2,11 @@
 set -Eeuo pipefail
 
 XPRA_DISPLAY="${XPRA_DISPLAY:-:100}"
-XPRA_BIND_HOST="${XPRA_BIND_HOST:-127.0.0.1}"
+XPRA_BIND_HOST="${XPRA_BIND_HOST:-0.0.0.0}"
 XPRA_BIND_PORT="${XPRA_BIND_PORT:-14500}"
+XPRA_HTML="${XPRA_HTML:-on}"
+XPRA_AUTH="${XPRA_AUTH:-password}"
+XPRA_PASSWORD_FILE="${XPRA_PASSWORD_FILE:-/xpra/password.txt}"
 APP_CMD="${APP_CMD:-python /app/main.py --ui pyqt}"
 XPRA_LOG_FILE="${XPRA_LOG_FILE:-/tmp/xpra.log}"
 APP_LOG_FILE="${APP_LOG_FILE:-/tmp/app.log}"
@@ -11,9 +14,6 @@ APP_LOG_FILE="${APP_LOG_FILE:-/tmp/app.log}"
 cleanup() {
   echo "[start.sh] shutting down"
   xpra stop "${XPRA_DISPLAY}" >/dev/null 2>&1 || true
-  if [ -n "${NGINX_PID:-}" ]; then
-    kill "${NGINX_PID}" >/dev/null 2>&1 || true
-  fi
 }
 
 trap cleanup SIGINT SIGTERM EXIT
@@ -24,16 +24,27 @@ if ! chmod 1777 /tmp/.X11-unix 2>/dev/null; then
   echo "[start.sh] warning: could not chmod /tmp/.X11-unix (continuing)" >&2
 fi
 
-mkdir -p /tmp/nginx/client_body /tmp/nginx/proxy /tmp/nginx/fastcgi /tmp/nginx/uwsgi /tmp/nginx/scgi
 touch "${APP_LOG_FILE}" "${XPRA_LOG_FILE}"
 
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp/runtime-pyuser}"
 
-echo "[start.sh] starting Xpra on ${XPRA_BIND_HOST}:${XPRA_BIND_PORT} display ${XPRA_DISPLAY}"
+if [ -z "${XPRA_PASSWORD:-}" ] && [ ! -s "${XPRA_PASSWORD_FILE}" ]; then
+  echo "[start.sh] XPRA auth is enabled (${XPRA_AUTH}) but no password source found." >&2
+  echo "[start.sh] Set XPRA_PASSWORD or mount a non-empty XPRA_PASSWORD_FILE (${XPRA_PASSWORD_FILE})." >&2
+  exit 1
+fi
+
+if [ -n "${XPRA_PASSWORD:-}" ]; then
+  umask 077
+  printf '%s\n' "${XPRA_PASSWORD}" >"${XPRA_PASSWORD_FILE}"
+fi
+
+echo "[start.sh] starting Xpra on ${XPRA_BIND_HOST}:${XPRA_BIND_PORT} display ${XPRA_DISPLAY} (auth=${XPRA_AUTH})"
 
 xpra start "${XPRA_DISPLAY}" \
   --bind-tcp="${XPRA_BIND_HOST}:${XPRA_BIND_PORT}" \
-  --html=on \
+  --html="${XPRA_HTML}" \
+  --auth="${XPRA_AUTH}:filename=${XPRA_PASSWORD_FILE}" \
   --daemon=no \
   --exit-with-children=yes \
   --start-child="/bin/bash -lc '${APP_CMD}'" \
@@ -46,8 +57,9 @@ xpra start "${XPRA_DISPLAY}" \
   --dbus-control=no \
   >>"${XPRA_LOG_FILE}" 2>&1 &
 
+READY_HOST="127.0.0.1"
 for i in $(seq 1 30); do
-  if curl -fsS "http://${XPRA_BIND_HOST}:${XPRA_BIND_PORT}/" >/dev/null 2>&1; then
+  if curl -fsS "http://${READY_HOST}:${XPRA_BIND_PORT}/" >/dev/null 2>&1; then
     echo "[start.sh] Xpra is ready"
     break
   fi
@@ -68,10 +80,6 @@ done
 
 XPRA_PID=$!
 
-echo "[start.sh] starting nginx"
-nginx -e /dev/stderr -g 'daemon off;' &
-NGINX_PID=$!
-
 # Stream both logs to container stdout so `make run` always shows app/xpra output.
 tail -n +1 -F "${XPRA_LOG_FILE}" "${APP_LOG_FILE}" &
 TAIL_PID=$!
@@ -80,6 +88,4 @@ wait "${XPRA_PID}"
 XPRA_EXIT_CODE=$?
 
 kill "${TAIL_PID}" >/dev/null 2>&1 || true
-kill "${NGINX_PID}" >/dev/null 2>&1 || true
-
 exit "${XPRA_EXIT_CODE}"
