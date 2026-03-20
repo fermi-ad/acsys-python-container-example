@@ -1,4 +1,4 @@
-name: Continuous Delivery Workflow for Python applications
+name: Continuous Delivery Workflow for AP Python applications
 
 on:
   workflow_dispatch:
@@ -60,13 +60,14 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: adregistry.fnal.gov/applications/${{ github.event.repository.name }}
+          images: adregistry.fnal.gov/ap-python/${{ github.event.repository.name }}
           tags: |
             # This is the default tag for the last commit of the default branch
             type=edge
             # This sets the latest tag for default branch
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=${{ github.run_number }},enable={{is_default_branch}}
+            type=raw,value=prod,enable={{is_default_branch}}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
