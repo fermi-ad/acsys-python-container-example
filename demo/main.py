@@ -54,15 +54,21 @@ async def my_app(con):
                     print(evt_res)
 
 
-async def stream_sctime(con, update_queue: queue.Queue, stop_event: threading.Event):
+async def _run_sctime_session(
+    con, update_queue: queue.Queue, stop_event: threading.Event
+):
     async with acsys.dpm.DPMContext(con) as dpm:
         await dpm.add_entry(0, "G:SCTIME@P,15H")
         await dpm.start()
 
+        _log.info("SCTIME stream connected")
+
         log_every_seconds = 5.0
+        stale_timeout_seconds = 15.0
         next_log_at = time.monotonic() + log_every_seconds
         msg_count = 0
         last_log_count = 0
+        last_reading_at = time.monotonic()
 
         async for evt_res in dpm:
             if stop_event.is_set():
@@ -72,6 +78,7 @@ async def stream_sctime(con, update_queue: queue.Queue, stop_event: threading.Ev
                 payload = str(evt_res)
                 update_queue.put(payload)
                 msg_count += 1
+                last_reading_at = time.monotonic()
 
             now = time.monotonic()
             if now >= next_log_at:
@@ -83,6 +90,35 @@ async def stream_sctime(con, update_queue: queue.Queue, stop_event: threading.Ev
                 )
                 last_log_count = msg_count
                 next_log_at += log_every_seconds
+
+            if now - last_reading_at > stale_timeout_seconds:
+                raise TimeoutError(
+                    f"SCTIME stream stale for > {stale_timeout_seconds:.0f}s"
+                )
+
+
+async def stream_sctime(con, update_queue: queue.Queue, stop_event: threading.Event):
+    retry_delay_seconds = 1.0
+    max_retry_delay_seconds = 30.0
+
+    while not stop_event.is_set():
+        try:
+            await _run_sctime_session(con, update_queue, stop_event)
+            if not stop_event.is_set():
+                _log.warning("SCTIME stream session ended; reconnecting")
+        except Exception:
+            if stop_event.is_set():
+                break
+            _log.exception(
+                "SCTIME stream disconnected; retrying in %.1fs", retry_delay_seconds
+            )
+            time.sleep(retry_delay_seconds)
+            retry_delay_seconds = min(
+                retry_delay_seconds * 2.0, max_retry_delay_seconds
+            )
+            continue
+
+        retry_delay_seconds = 1.0
 
 
 def main():
