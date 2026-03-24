@@ -1,0 +1,108 @@
+schemaVersion: 2.2.0
+metadata:
+  name: acsys-python-container-example
+attributes:
+  che-theia.eclipse.org/sidecar-policy: mergeImage
+projects:
+  - name: acsys-python-container-example
+    source:
+      type: git
+      location: https://github.com/fermi-ad/acsys-python-container-example
+components:
+  - name: tools
+    container:
+      image: quay.io/devfile/universal-developer-image:ubi9-latest
+      memoryLimit: 2Gi
+      cpuLimit: '2'
+      mountSources: true
+      endpoints:
+        - name: xpra
+          targetPort: 14500
+          exposure: public
+          protocol: tcp
+      env:
+        - name: UV_LINK_MODE
+          value: copy
+        - name: PIP_DISABLE_PIP_VERSION_CHECK
+          value: '1'
+      command:
+        - /bin/sh
+      args:
+        - -c
+        - tail -f /dev/null
+  - name: podman
+    container:
+      image: quay.io/podman/stable:latest
+      memoryLimit: 1Gi
+      mountSources: true
+      command:
+        - /bin/sh
+      args:
+        - -c
+        - tail -f /dev/null
+commands:
+  - id: install-deps
+    exec:
+      label: Install Python dependencies (uv)
+      component: tools
+      workingDir: ${PROJECT_SOURCE}
+      commandLine: |
+        set -e
+        if ! command -v uv >/dev/null 2>&1; then
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          export PATH="$HOME/.local/bin:$PATH"
+        fi
+        uv sync
+      group:
+        kind: build
+        isDefault: true
+  - id: run-console-demo
+    exec:
+      label: Run demo (console)
+      component: tools
+      workingDir: ${PROJECT_SOURCE}
+      commandLine: |
+        export PATH="$HOME/.local/bin:$PATH"
+        uv run python demo/main.py
+      group:
+        kind: run
+        isDefault: true
+  - id: run-pyqt-demo
+    exec:
+      label: Run demo (PyQt)
+      component: tools
+      workingDir: ${PROJECT_SOURCE}
+      commandLine: |
+        export PATH="$HOME/.local/bin:$PATH"
+        uv run python demo/main.py --ui pyqt
+      group:
+        kind: run
+  - id: run-tkinter-demo
+    exec:
+      label: Run demo (Tkinter)
+      component: tools
+      workingDir: ${PROJECT_SOURCE}
+      commandLine: |
+        export PATH="$HOME/.local/bin:$PATH"
+        uv run python demo/main.py --ui tkinter
+      group:
+        kind: run
+  - id: build-container
+    exec:
+      label: Build deployment image
+      component: podman
+      workingDir: ${PROJECT_SOURCE}
+      commandLine: podman build -t acsys-python-example .
+      group:
+        kind: build
+  - id: run-container-xpra
+    exec:
+      label: Run deployment container (Xpra TCP)
+      component: podman
+      workingDir: ${PROJECT_SOURCE}
+      commandLine: podman run --rm -p 14500:14500 -e APP_CMD="python /app/main.py --ui pyqt" acsys-python-example
+      group:
+        kind: run
+events:
+  postStart:
+    - install-deps
