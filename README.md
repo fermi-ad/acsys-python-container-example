@@ -54,8 +54,7 @@ python demo/main.py --ui tkinter
 
 Use the Makefile [`run`](Makefile) target, with optional arguments:
 - `UI=pyqt|tkinter` to choose a UI toolkit.
-- `XPRA_PORT=<port>` to map a local port to container Xpra TCP port `14500`.
-- `XPRA_PASSWORD=<password>` to pass Xpra auth password into the container environment.
+- `XPRA_PORT=<port>` to map a local port to the container Xpra TCP port `14500`.
 
 Run with default settings:
 
@@ -79,7 +78,7 @@ tcp:localhost:14500
 Or, if using a custom local port:
 
 ```bash
-make run UI=pyqt XPRA_PORT=16000 XPRA_PASSWORD='change-me-now'
+make run UI=pyqt XPRA_PORT=16000
 ```
 
 ```text
@@ -90,7 +89,7 @@ tcp:localhost:16000
 
 This repository can be deployed as a single container that:
 - runs Xpra with TCP bound on `0.0.0.0:14500`
-- requires Xpra authentication for native client access
+- runs in HTML mode
 - starts the PyQt UI app through Xpra
 
 Build image:
@@ -106,14 +105,13 @@ docker run -d \
   --name acsys-xpra \
   --restart unless-stopped \
   -p 14500:14500 \
-  -e XPRA_PASSWORD='change-me-now' \
   acsys-xpra
 ```
 
-Connect from native Xpra client:
+Open in your browser:
 
 ```text
-tcp:<server-ip>:14500
+http://<server-ip>:14500/
 ```
 
 Optional environment overrides:
@@ -121,11 +119,8 @@ Optional environment overrides:
 - `XPRA_BIND_HOST` (default: `0.0.0.0`)
 - `XPRA_BIND_PORT` (default: `14500`)
 - `XPRA_DISPLAY` (default: `:100`)
-- `XPRA_HTML` (default: `on`; only needed if using Xpra HTML directly on port `14500`)
-- `XPRA_AUTH` (default: `password`)
-- `XPRA_PASSWORD` (recommended secret; writes to `XPRA_PASSWORD_FILE` at startup)
-- `XPRA_PASSWORD_FILE` (default: `/xpra/password.txt`; use with mounted secret files)
+- `XPRA_HTML` (default: `on`)
+- `XPRA_AUTH` (default: `none`)
 
 Security note:
-- Authentication is now required by default for native Xpra TCP access.
-- Use a strong password and do not expose port `14500` publicly without network controls and TLS in front of Xpra.
+- Do not expose port `14500` publicly without network controls and TLS in front of Xpra.

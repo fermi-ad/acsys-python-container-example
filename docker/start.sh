@@ -5,8 +5,6 @@ XPRA_DISPLAY="${XPRA_DISPLAY:-:100}"
 XPRA_BIND_HOST="${XPRA_BIND_HOST:-0.0.0.0}"
 XPRA_BIND_PORT="${XPRA_BIND_PORT:-14500}"
 XPRA_HTML="${XPRA_HTML:-on}"
-XPRA_AUTH="${XPRA_AUTH:-password}"
-XPRA_PASSWORD_FILE="${XPRA_PASSWORD_FILE:-/xpra/password.txt}"
 APP_CMD="${APP_CMD:-python /app/main.py --ui pyqt}"
 XPRA_LOG_FILE="${XPRA_LOG_FILE:-/tmp/xpra.log}"
 APP_LOG_FILE="${APP_LOG_FILE:-/tmp/app.log}"
@@ -28,23 +26,11 @@ touch "${APP_LOG_FILE}" "${XPRA_LOG_FILE}"
 
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp/runtime-pyuser}"
 
-if [ -z "${XPRA_PASSWORD:-}" ] && [ ! -s "${XPRA_PASSWORD_FILE}" ]; then
-  echo "[start.sh] XPRA auth is enabled (${XPRA_AUTH}) but no password source found." >&2
-  echo "[start.sh] Set XPRA_PASSWORD or mount a non-empty XPRA_PASSWORD_FILE (${XPRA_PASSWORD_FILE})." >&2
-  exit 1
-fi
-
-if [ -n "${XPRA_PASSWORD:-}" ]; then
-  umask 077
-  printf '%s\n' "${XPRA_PASSWORD}" >"${XPRA_PASSWORD_FILE}"
-fi
-
 echo "[start.sh] starting Xpra on ${XPRA_BIND_HOST}:${XPRA_BIND_PORT} display ${XPRA_DISPLAY} (auth=${XPRA_AUTH})"
 
 xpra start "${XPRA_DISPLAY}" \
   --bind-tcp="${XPRA_BIND_HOST}:${XPRA_BIND_PORT}" \
   --html="${XPRA_HTML}" \
-  --auth="${XPRA_AUTH}:filename=${XPRA_PASSWORD_FILE}" \
   --daemon=no \
   --exit-with-children=yes \
   --start-child="/bin/bash -lc '${APP_CMD}'" \

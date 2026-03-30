@@ -46,10 +46,7 @@ FROM base
 COPY --from=builder /install /usr/local
 COPY demo /app
 COPY docker/start.sh /usr/local/bin/start.sh
-COPY xpra/password.txt /xpra/password.txt
 RUN chmod +x /usr/local/bin/start.sh \
- && chmod 600 /xpra/password.txt \
- && chown pyuser:pygroup /xpra/password.txt
 WORKDIR /app
 
 USER pyuser:pygroup
