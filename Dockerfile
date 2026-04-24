@@ -46,12 +46,13 @@ FROM base
 COPY --from=builder /install /usr/local
 COPY demo /app
 COPY docker/start.sh /usr/local/bin/start.sh
-RUN chmod +x /usr/local/bin/start.sh \
+RUN chmod +x /usr/local/bin/start.sh
 WORKDIR /app
 
 USER pyuser:pygroup
 
 ENV PATH="/usr/local/.venv/bin:${PATH}"
 ENV XDG_RUNTIME_DIR=/tmp/runtime-pyuser
+ENV XCURSOR_SIZE=24
 EXPOSE 14500
 ENTRYPOINT ["/usr/local/bin/start.sh"]

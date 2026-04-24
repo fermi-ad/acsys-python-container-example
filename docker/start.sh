@@ -26,7 +26,7 @@ touch "${APP_LOG_FILE}" "${XPRA_LOG_FILE}"
 
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp/runtime-pyuser}"
 
-echo "[start.sh] starting Xpra on ${XPRA_BIND_HOST}:${XPRA_BIND_PORT} display ${XPRA_DISPLAY} (auth=${XPRA_AUTH})"
+echo "[start.sh] starting Xpra on ${XPRA_BIND_HOST}:${XPRA_BIND_PORT} display ${XPRA_DISPLAY}"
 
 xpra start "${XPRA_DISPLAY}" \
   --bind-tcp="${XPRA_BIND_HOST}:${XPRA_BIND_PORT}" \
