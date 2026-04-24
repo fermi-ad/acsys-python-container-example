@@ -33,6 +33,8 @@ xpra start "${XPRA_DISPLAY}" \
   --html="${XPRA_HTML}" \
   --daemon=no \
   --exit-with-children=yes \
+  --exit-with-windows=yes \
+  --server-idle-timeout=300 \
   --start-child="/bin/bash -lc '${APP_CMD}'" \
   --pulseaudio=no \
   --notifications=no \
